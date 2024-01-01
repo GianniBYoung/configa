@@ -14,34 +14,24 @@ type Config struct {
 	debugMode bool   `yaml:"debugMode"`
 }
 
-func surveyUser() Config {
+var config Config
 
-	var (
-		domain    string
-		debugMode bool
-	)
-
+func surveyUser() {
 	form := huh.NewForm(huh.NewGroup(
 		huh.NewSelect[bool]().Title("Do you want Debug Mode Enabled (recommended)").Options(
 			huh.NewOption("Yes", true),
 			huh.NewOption("No", false),
-		).Value(&debugMode),
+		).Value(&config.debugMode),
 	),
 		huh.NewGroup(
 			huh.NewSelect[string]().Title("What domain are you in?").Options(
 				huh.NewOption("us.nelnet.biz", ".us.nelnet.biz"),
-				huh.NewOption("us.glhec.org", ".us.glhec.org"),
+				huh.NewOption("glhec.org", ".glhec.org"),
 				huh.NewOption("nulsc.biz", ".nulsc.biz"),
-			).Value(&domain),
+			).Value(&config.domain),
 		),
 	)
 	form.Run()
-
-	return Config{
-		domain:    domain,
-		debugMode: debugMode,
-	}
-
 }
 
 func main() {
@@ -51,7 +41,7 @@ func main() {
 		ReportTimestamp: false,
 	})
 
-	config := surveyUser()
+	surveyUser()
 
 	log.Print("", config, "Configuration")
 	conf, err := yaml.Marshal(&config)
@@ -64,12 +54,12 @@ func main() {
 	f, err := os.Create("config.yaml")
 
 	if err != nil {
-		panic(err)
+		log.Fatal("", err, "Fatal Error")
 	}
 	defer f.Close()
 
 	_, err = io.WriteString(f, string(conf))
 	if err != nil {
-		panic(err)
+		log.Fatal("", err, "Fatal Error")
 	}
 }
