@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"os"
 
 	"github.com/charmbracelet/huh"
@@ -10,8 +9,8 @@ import (
 )
 
 type Config struct {
-	domain    string `yaml:"domain"`
-	debugMode bool   `yaml:"debugMode"`
+	Domain    string `yaml:"domain"`
+	DebugMode bool   `yaml:"debugMode"`
 }
 
 var config Config
@@ -21,45 +20,69 @@ func surveyUser() {
 		huh.NewSelect[bool]().Title("Do you want Debug Mode Enabled (recommended)").Options(
 			huh.NewOption("Yes", true),
 			huh.NewOption("No", false),
-		).Value(&config.debugMode),
+		).Value(&config.DebugMode),
 	),
 		huh.NewGroup(
 			huh.NewSelect[string]().Title("What domain are you in?").Options(
 				huh.NewOption("us.nelnet.biz", ".us.nelnet.biz"),
 				huh.NewOption("glhec.org", ".glhec.org"),
 				huh.NewOption("nulsc.biz", ".nulsc.biz"),
-			).Value(&config.domain),
+			).Value(&config.Domain),
 		),
 	)
 	form.Run()
 }
 
-func main() {
+func generateConfig() error {
+	configPath := os.Getenv("XDG_CONFIG_HOME")
 
-	log := log.NewWithOptions(os.Stderr, log.Options{
-		ReportCaller:    false,
-		ReportTimestamp: false,
-	})
+	if configPath == "" {
+		homeDir, _ := os.UserHomeDir()
+		configPath = homeDir + "/.config"
+		err := os.MkdirAll(homeDir+".config", 0755)
+		if err != nil {
+			log.Error("Unable to create ~/.config")
+		}
+	}
 
-	surveyUser()
+	configPath += "/sheath-conf.yaml"
 
-	log.Print("", config, "Configuration")
+	if _, err := os.Stat(configPath); err != nil {
+		err = writeConfig(configPath)
+		return err
+	}
+
+	return nil
+}
+
+// TODO this should rewrite the config
+func writeConfig(configFilePath string) error {
 	conf, err := yaml.Marshal(&config)
 
 	if err != nil {
-		log.Fatal("", err, "error")
+		log.Error("", err, "YAML Marshal Err")
 	}
 
-	log.Print(string(conf))
-	f, err := os.Create("config.yaml")
+	err = os.WriteFile(configFilePath, conf, 0644)
 
 	if err != nil {
-		log.Fatal("", err, "Fatal Error")
+		log.Fatal("", err, "Error Writing Config File to "+configFilePath)
 	}
-	defer f.Close()
 
-	_, err = io.WriteString(f, string(conf))
-	if err != nil {
-		log.Fatal("", err, "Fatal Error")
+	return nil
+}
+
+func main() {
+	log.SetReportTimestamp(false)
+	log.SetReportCaller(false)
+
+	surveyUser()
+	e := generateConfig()
+
+	if e != nil {
+		log.Error("", e, "config file error")
 	}
+
+	log.Print(config)
+	log.Print("Config Generated!")
 }
