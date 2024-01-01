@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"os"
 
 	"github.com/charmbracelet/huh"
@@ -25,9 +24,8 @@ func surveyUser() {
 	),
 		huh.NewGroup(
 			huh.NewSelect[string]().Title("What domain are you in?").Options(
-				huh.NewOption("us.nelnet.biz", ".us.nelnet.biz"),
-				huh.NewOption("glhec.org", ".glhec.org"),
-				huh.NewOption("nulsc.biz", ".nulsc.biz"),
+				huh.NewOption("test.com", "test.com"),
+				huh.NewOption("test2.com", "test2.com"),
 			).Value(&config.domain),
 		),
 	)
@@ -43,7 +41,7 @@ func main() {
 
 	surveyUser()
 
-	log.Print("", config, "Configuration")
+	log.Print("", config, "Configuration Struct")
 	conf, err := yaml.Marshal(&config)
 
 	if err != nil {
@@ -51,15 +49,8 @@ func main() {
 	}
 
 	log.Print(string(conf))
-	f, err := os.Create("config.yaml")
 
-	if err != nil {
-		log.Fatal("", err, "Fatal Error")
-	}
-	defer f.Close()
-
-	_, err = io.WriteString(f, string(conf))
-	if err != nil {
-		log.Fatal("", err, "Fatal Error")
-	}
+	// output:
+	// {test.com true}="Configuration Struct"
+	// {}
 }
