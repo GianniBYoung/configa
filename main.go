@@ -103,4 +103,7 @@ func main() {
 
 	log.Print(config)
 	log.Print("Config Generated!")
+
+	c := ReadConfig()
+	log.Print(c.Domain)
 }
