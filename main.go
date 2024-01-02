@@ -14,8 +14,10 @@ type Config struct {
 }
 
 var config Config
+var ConfigPath string
+var ConfigDirPath string
 
-func surveyUser() {
+func SurveyUser() {
 	form := huh.NewForm(huh.NewGroup(
 		huh.NewSelect[bool]().Title("Do you want Debug Mode Enabled (recommended)").Options(
 			huh.NewOption("Yes", true),
@@ -33,51 +35,67 @@ func surveyUser() {
 	form.Run()
 }
 
-func generateConfig() error {
-	configPath := os.Getenv("XDG_CONFIG_HOME")
+func GetConfigPath() {
 
-	if configPath == "" {
+	ConfigDirPath = os.Getenv("XDG_CONFIG_HOME")
+
+	if ConfigDirPath == "" {
 		homeDir, _ := os.UserHomeDir()
-		configPath = homeDir + "/.config"
+		ConfigDirPath = homeDir + "/.config"
 		err := os.MkdirAll(homeDir+".config", 0755)
 		if err != nil {
 			log.Error("Unable to create ~/.config")
 		}
 	}
 
-	configPath += "/sheath-conf.yaml"
+	ConfigPath = ConfigDirPath + "/sheath-conf.yaml"
 
-	if _, err := os.Stat(configPath); err != nil {
-		err = writeConfig(configPath)
-		return err
-	}
-
-	return nil
 }
 
-// TODO this should rewrite the config
-func writeConfig(configFilePath string) error {
+// This function should always generate and overwrite a config.
+func GenerateConfig() error {
+
 	conf, err := yaml.Marshal(&config)
 
 	if err != nil {
 		log.Error("", err, "YAML Marshal Err")
 	}
 
-	err = os.WriteFile(configFilePath, conf, 0644)
+	err = os.WriteFile(ConfigPath, conf, 0644)
 
 	if err != nil {
-		log.Fatal("", err, "Error Writing Config File to "+configFilePath)
+		log.Fatal("", err, "Error Writing Config File to "+ConfigPath)
+		return err
 	}
 
 	return nil
+}
+
+func ReadConfig() Config {
+
+	f, err := os.ReadFile(ConfigPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var c Config
+
+	if err := yaml.Unmarshal(f, &c); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("%+v\n", c)
+
+	return c
 }
 
 func main() {
 	log.SetReportTimestamp(false)
 	log.SetReportCaller(false)
 
-	surveyUser()
-	e := generateConfig()
+	GetConfigPath()
+	SurveyUser()
+	e := GenerateConfig()
 
 	if e != nil {
 		log.Error("", e, "config file error")
