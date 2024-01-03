@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Domain    string `yaml:"domain"`
 	DebugMode bool   `yaml:"debugMode"`
+	Normalize bool   `yaml:"normalize"`
 }
 
 var config Config
@@ -19,10 +20,15 @@ var ConfigDirPath string
 
 func SurveyUser() {
 	form := huh.NewForm(huh.NewGroup(
-		huh.NewSelect[bool]().Title("Do you want Debug Mode Enabled (recommended)").Options(
+		huh.NewSelect[bool]().Title("Do you want Debug Mode Enabled? (recommended)").Options(
 			huh.NewOption("Yes", true),
 			huh.NewOption("No", false),
 		).Value(&config.DebugMode),
+	), huh.NewGroup(
+		huh.NewSelect[bool]().Title("Do you want to normalize nodes? (recommended)").Options(
+			huh.NewOption("Yes", true),
+			huh.NewOption("No", false),
+		).Value(&config.Normalize),
 	),
 		huh.NewGroup(
 			huh.NewSelect[string]().Title("What domain are you in?").Options(
@@ -54,7 +60,6 @@ func GetConfigPath() {
 
 // This function should always generate and overwrite a config.
 func GenerateConfig() error {
-
 	conf, err := yaml.Marshal(&config)
 
 	if err != nil {
@@ -72,8 +77,8 @@ func GenerateConfig() error {
 }
 
 func ReadConfig() Config {
-
 	f, err := os.ReadFile(ConfigPath)
+
 	if err != nil {
 		log.Fatal(err)
 	}
