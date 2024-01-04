@@ -8,107 +8,97 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Config struct {
-	Domain    string `yaml:"domain"`
-	DebugMode bool   `yaml:"debugMode"`
-	Normalize bool   `yaml:"normalize"`
+// # for something to be configurable it must have gen and read METHODS
+
+// i have no idea how set options as yaml or how to Unmarshal into a struct here
+type Options struct {
+	//yaml tags somehow
+	Opts map[string]any
 }
 
-var config Config
-var ConfigPath string
-var ConfigDirPath string
+type Config struct {
+	BaseName string
+	Path     string
+	// embed a struct for options
+	Options Options
+}
 
-func SurveyUser() {
-	form := huh.NewForm(huh.NewGroup(
-		huh.NewSelect[bool]().Title("Do you want Debug Mode Enabled? (recommended)").Options(
-			huh.NewOption("Yes", true),
-			huh.NewOption("No", false),
-		).Value(&config.DebugMode),
-	), huh.NewGroup(
-		huh.NewSelect[bool]().Title("Do you want to normalize nodes? (recommended)").Options(
-			huh.NewOption("Yes", true),
-			huh.NewOption("No", false),
-		).Value(&config.Normalize),
-	),
-		huh.NewGroup(
-			huh.NewSelect[string]().Title("What domain are you in?").Options(
-				huh.NewOption("us.nelnet.biz", ".us.nelnet.biz"),
-				huh.NewOption("glhec.org", ".glhec.org"),
-				huh.NewOption("nulsc.biz", ".nulsc.biz"),
-			).Value(&config.Domain),
-		),
-	)
+type Configurable interface {
+	GenerateConfig() (Config, error)
+	ReadConfig() (Config, error)
+	CreateConfigPath()
+}
+
+// This should set options but idk how to handle the options struct
+func (c *Config) SurveyUser(form huh.Form) {
 	form.Run()
 }
 
-func GetConfigPath() {
+func (c *Config) SetOptions(options Options) {
+	c.Options = options
+}
 
-	ConfigDirPath = os.Getenv("XDG_CONFIG_HOME")
+// Default implementation places a config file directly in xdg home
+func (c *Config) SetConfigPath() error {
 
-	if ConfigDirPath == "" {
+	configDirPath := os.Getenv("XDG_CONFIG_HOME")
+
+	if configDirPath == "" {
 		homeDir, _ := os.UserHomeDir()
-		ConfigDirPath = homeDir + "/.config"
+		configDirPath = homeDir + "/.config"
 		err := os.MkdirAll(homeDir+".config", 0755)
 		if err != nil {
 			log.Error("Unable to create ~/.config")
+			return err
 		}
 	}
 
-	ConfigPath = ConfigDirPath + "/sheath-conf.yaml"
+	// Set ConfigPath
+	c.Path = configDirPath + c.BaseName
+	return nil
 
 }
 
 // This function should always generate and overwrite a config.
-func GenerateConfig() error {
+func (c *Config) GenerateConfig() error {
 	conf, err := yaml.Marshal(&config)
 
 	if err != nil {
 		log.Error("", err, "YAML Marshal Err")
 	}
 
-	err = os.WriteFile(ConfigPath, conf, 0644)
+	err = os.WriteFile(c.Path, conf, 0644)
 
 	if err != nil {
-		log.Fatal("", err, "Error Writing Config File to "+ConfigPath)
+		log.Fatal("", err, "Error Writing Config File to "+c.Path)
 		return err
 	}
 
 	return nil
 }
 
-func ReadConfig() Config {
-	f, err := os.ReadFile(ConfigPath)
+func (c *Config) ReadConfig() {
+	f, err := os.ReadFile(c.Path)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var c Config
-
-	if err := yaml.Unmarshal(f, &c); err != nil {
+	// Check the pointer here
+	// if err := yaml.Unmarshal(f, &c); err != nil {
+	if err := yaml.Unmarshal(f, c); err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("%+v\n", c)
-
-	return c
+	//TODO: Set c.Options here
 }
 
-func MainConfiga() {
-	log.SetReportTimestamp(false)
-	log.SetReportCaller(false)
-
-	GetConfigPath()
-	SurveyUser()
-	e := GenerateConfig()
-
-	if e != nil {
-		log.Error("", e, "config file error")
+func NewConfig(configBaseName string) Config {
+	c := Config{BaseName: configBaseName}
+	err := c.SetConfigPath()
+	if err != nil {
+		log.Error(err)
 	}
 
-	log.Print(config)
-	log.Print("Config Generated!")
-
-	c := ReadConfig()
-	log.Print(c.Domain)
+	return c
 }
