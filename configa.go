@@ -94,7 +94,7 @@ func ReadConfig() Config {
 	return c
 }
 
-func main() {
+func mainConfiga() {
 	log.SetReportTimestamp(false)
 	log.SetReportCaller(false)
 
