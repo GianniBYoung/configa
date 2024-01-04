@@ -1,4 +1,4 @@
-module huh.com
+module github.com/GianniBYoung/configa
 
 go 1.21.5
 
