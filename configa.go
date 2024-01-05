@@ -61,7 +61,7 @@ func (c *Config) SetConfigPath() error {
 
 // This function should always generate and overwrite a config.
 func (c *Config) GenerateConfig() error {
-	conf, err := yaml.Marshal(&config)
+	conf, err := yaml.Marshal(c.Options)
 
 	if err != nil {
 		log.Error("", err, "YAML Marshal Err")
@@ -86,11 +86,11 @@ func (c *Config) ReadConfig() {
 
 	// Check the pointer here
 	// if err := yaml.Unmarshal(f, &c); err != nil {
-	if err := yaml.Unmarshal(f, c); err != nil {
+	if err := yaml.Unmarshal(f, c.Options); err != nil {
 		log.Fatal(err)
 	}
 
-	//TODO: Set c.Options here
+	//TODO: Set c.Options here maybe?
 }
 
 func NewConfig(configBaseName string) Config {
